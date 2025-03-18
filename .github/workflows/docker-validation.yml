@@ -25,4 +25,5 @@ jobs:
           sudo apt install -y wget software-properties-common
 
       - name: 🔍 Run Docker validation script
-        run: bash docker/validate-dockerfile-ci.sh
+        working-directory: docker
+        run: bash validate-dockerfile-ci.sh
