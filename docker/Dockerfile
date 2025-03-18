@@ -4,4 +4,5 @@ LABEL authors="german.garces@appfire.com"
 # Install required Python packages
 RUN pip install --no-cache-dir c7n-org==0.6.42 c7n-mailer==0.6.42
 
+# Use own entrypoint
 ENTRYPOINT ["top", "-b"]
