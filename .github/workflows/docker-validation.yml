@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - 'docker/Dockerfile'
+  push:
+    paths:
+      - 'docker/**'
   workflow_dispatch:
 
 jobs:
