@@ -20,13 +20,13 @@ jobs:
       - name: ⚙️ Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: 🔧 Lint Dockerfile
+      - name: 🔎 Lint Dockerfile
         uses: hadolint/hadolint-action@master
         with:
           dockerfile: "docker/Dockerfile"
 
-      - name: 🔧 Build
+      - name: 🐳 Build Docker Image
         uses: docker/build-push-action@v6
         with:
-          context: docker/Dockerfile
+          context: docker
           tags: softwareplant/cloud-custodian:latest
