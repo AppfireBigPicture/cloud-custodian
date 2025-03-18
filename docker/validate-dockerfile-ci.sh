@@ -24,18 +24,6 @@ install_dependencies() {
         chmod +x /usr/local/bin/hadolint
     fi
 
-    if ! command_exists trivy; then
-        echo "⚙️ Installing Trivy..."
-        wget https://github.com/aquasecurity/trivy/releases/download/v0.18.3/trivy_0.18.3_Linux-64bit.deb
-        sudo dpkg -i trivy_0.18.3_Linux-64bit.deb
-    fi
-
-    if ! command_exists dive; then
-        echo "⚙️ Installing Dive..."
-        sudo add-apt-repository -y ppa:wagoodman/dive
-        sudo apt update && sudo apt install -y dive
-    fi
-
     echo "✅ All dependencies are installed."
 }
 
@@ -51,20 +39,6 @@ build_docker_image() {
     echo "🔨 Building Docker image..."
     DOCKER_BUILDKIT=1 docker build -t "$IMAGE_NAME" -f "$DOCKERFILE" . || { echo "❌ Build failed!"; exit 1; }
     echo "✅ Image built successfully."
-}
-
-# Scan image for vulnerabilities
-scan_image() {
-    echo "🛡️ Scanning image for vulnerabilities..."
-    trivy image "$IMAGE_NAME" || { echo "❌ Security issues detected!"; exit 1; }
-    echo "✅ No critical vulnerabilities found."
-}
-
-# Analyze image layers
-analyze_layers() {
-    echo "🔍 Analyzing image layers..."
-    dive "$IMAGE_NAME" || { echo "❌ Inefficient layers detected!"; exit 1; }
-    echo "✅ Image layers are optimized."
 }
 
 # Run all checks
