@@ -28,5 +28,5 @@ jobs:
       - name: 🔧 Build
         uses: docker/build-push-action@v6
         with:
-          context: ./docker/Dockerfile
+          context: docker/Dockerfile
           tags: softwareplant/cloud-custodian:latest
