@@ -1,4 +1,4 @@
-name: ci
+name: 🐋 Build Docker Image
 
 on:
   pull_request:
