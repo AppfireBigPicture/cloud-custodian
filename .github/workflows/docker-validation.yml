@@ -1,12 +1,9 @@
-name: Docker Validation
+name: 🐳 Lint Dockerfile
 
 on:
-  push:
-    paths:
-      - 'docker/**'
   pull_request:
     paths:
-      - 'docker/**'
+      - 'docker/Dockerfile'
 
 jobs:
   validate-dockerfile:
@@ -16,14 +13,7 @@ jobs:
       - name: 🚀 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🔧 Set up Docker
-        uses: docker/setup-buildx-action@v2
-
-      - name: 🔧 Install dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y wget software-properties-common
-
-      - name: 🔍 Run Docker validation script
-        working-directory: docker
-        run: bash validate-dockerfile-ci.sh
+      - name: 🔧 Lint Dockerfile
+        uses: hadolint/hadolint-action@master
+        with:
+          dockerfile: "docker/Dockerfile"
