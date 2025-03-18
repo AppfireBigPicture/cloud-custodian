@@ -26,7 +26,8 @@ install_dependencies() {
 
     if ! command_exists trivy; then
         echo "⚙️ Installing Trivy..."
-        sudo apt update && sudo apt install -y trivy
+        wget https://github.com/aquasecurity/trivy/releases/download/v0.18.3/trivy_0.18.3_Linux-64bit.deb
+        sudo dpkg -i trivy_0.18.3_Linux-64bit.deb
     fi
 
     if ! command_exists dive; then
