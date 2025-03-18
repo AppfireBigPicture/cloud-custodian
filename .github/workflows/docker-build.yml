@@ -1,0 +1,23 @@
+name: ci
+
+on:
+  pull_request:
+    paths:
+      - 'docker/**'
+  workflow_dispatch:
+
+jobs:
+  docker:
+    runs-on: ubuntu-22.04
+    steps:
+
+      - name: 🚀 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔧 Build
+        uses: docker/build-push-action@v6
+        with:
+          tags: softwareplant/cloud-custodian:latest

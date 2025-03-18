@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'docker/Dockerfile'
+  workflow_dispatch:
 
 jobs:
   validate-dockerfile:
