@@ -1,0 +1,28 @@
+name: Docker Validation
+
+on:
+  push:
+    paths:
+      - 'docker/**'
+  pull_request:
+    paths:
+      - 'docker/**'
+
+jobs:
+  validate-dockerfile:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: 🚀 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Set up Docker
+        uses: docker/setup-buildx-action@v2
+
+      - name: 🔧 Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y wget software-properties-common
+
+      - name: 🔍 Run Docker validation script
+        run: bash docker/validate-dockerfile-ci.sh
