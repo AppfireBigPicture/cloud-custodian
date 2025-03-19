@@ -2,8 +2,6 @@ name: 🐳 Validate & Build c7n Docker Image
 
 on:
   pull_request:
-    paths:
-      - 'docker/**'
   workflow_dispatch:
 
 jobs:
@@ -11,10 +9,10 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
 
-      - name: 🚀 Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: ⚙️ Set up Docker Buildx
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: 🔎 Lint Dockerfile
