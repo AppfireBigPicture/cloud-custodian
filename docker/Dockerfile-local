@@ -1,6 +1,9 @@
 FROM python:3.9-alpine
 LABEL authors="german.garces@appfire.com"
 
+COPY netskope-cert-bundle.pem /netskope-cert-bundle.pem
+ENV REQUESTS_CA_BUNDLE=/netskope-cert-bundle.pem
+
 ENV ROLE_ARN="arn:aws:iam::891377226793:role/AppfireCloudCustodian"
 ENV AWS_REGION="us-east-2"
 

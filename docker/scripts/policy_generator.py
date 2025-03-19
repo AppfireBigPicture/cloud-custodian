@@ -1,4 +1,6 @@
 import yaml
+import boto3
+import os
 from typing import List, Dict
 
 class Policy:
@@ -7,8 +9,12 @@ class Policy:
         self.tags = tags
         self.delete_action = delete_action
         self.c7n_tag = "tag:custodian_cleanup"
-        self.queue_arn = "" # To define
-        self.slack_webhook_url = "" # To define
+        self._get_params() # Get sensitive params
+
+    def _get_params(self):
+        ssm = boto3.client("ssm", region_name=os.getenv("AWS_REGION"))
+        self.queue_arn = ssm.get_parameter(Name="/c7n/queue_arn", WithDecryption=True)["Parameter"]["Value"]
+        self.slack_webhook_url = ssm.get_parameter(Name="/c7n/slack_webhook_url", WithDecryption=True)["Parameter"]["Value"]
 
     def generate(self) -> list:
         tag_compliance_filters = [{"tag:" + tag: "absent"} for tag in self.tags]
