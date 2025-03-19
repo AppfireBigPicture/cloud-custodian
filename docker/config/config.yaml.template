@@ -1,0 +1,4 @@
+queue_url: ${QUEUE_URL}
+role: ${ROLE_ARN}
+slack_token: ${SLACK_TOKEN}
+region: ${AWS_REGION}

@@ -1,11 +1,17 @@
 FROM python:3.9-alpine
 LABEL authors="german.garces@appfire.com"
 
-# Install required Python packages
-RUN pip install --no-cache-dir c7n-org==0.6.42 c7n-mailer==0.6.42
+ENV ROLE_ARN="arn:aws:iam::891377226793:role/AppfireCloudCustodian"
+ENV AWS_REGION="us-east-2"
 
 COPY scripts /app/scripts
+COPY config /app/config
+COPY entrypoint.sh /app
+
+RUN pip install --no-cache-dir -r /app/scripts/requirements.txt \
+    && chmod +x /app/entrypoint.sh
 
 WORKDIR /app
 
-ENTRYPOINT ["top", "-b"]
+ENTRYPOINT ["./entrypoint.sh"]
+CMD ["/bin/bash", "./c7n-pipeline"]
