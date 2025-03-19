@@ -9,5 +9,6 @@ export SLACK_WEBHOOK_URL
 # Prepare config files for c7n
 envsubst < config/config.yaml.template > config/config.yaml
 
+python scripts/policy_generator.py
 
 exec "$@"
