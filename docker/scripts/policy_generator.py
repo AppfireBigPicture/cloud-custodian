@@ -252,5 +252,5 @@ if __name__ == "__main__":
     }
 
     policies = generate_policies(resources_tags)
-    with open("docker/policies.yml", "w") as f:
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "policies.yml"), "w") as f:
         yaml.dump(policies, f, sort_keys=False, default_flow_style=False)
