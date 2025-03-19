@@ -1,0 +1,20 @@
+FROM python:3.9-alpine
+LABEL authors="german.garces@appfire.com"
+
+COPY netskope-cert-bundle.pem /netskope-cert-bundle.pem
+ENV REQUESTS_CA_BUNDLE=/netskope-cert-bundle.pem
+
+ENV ROLE_ARN="arn:aws:iam::891377226793:role/AppfireCloudCustodian"
+ENV AWS_REGION="us-east-2"
+
+COPY scripts /app/scripts
+COPY config /app/config
+COPY entrypoint.sh /app
+
+RUN pip install --no-cache-dir -r /app/scripts/requirements.txt \
+    && chmod +x /app/entrypoint.sh
+
+WORKDIR /app
+
+ENTRYPOINT ["./entrypoint.sh"]
+CMD ["/bin/bash", "./c7n-pipeline"]
