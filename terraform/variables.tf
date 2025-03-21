@@ -1,35 +1,40 @@
 variable "aws_region" {
-  description = <<-DESC
-    AWS region where the resources will be deployed.
-
-    Attributes:
-      - Type: string
-      - Default: "us-east-1"
-
-    Example:
-      "us-west-2"
-  DESC
   type        = string
-  default     = "us-east-1"
+  description = <<EOT
+    (Optional) AWS region where the resources will be deployed.
+
+    Default: us-east-1
+  EOT
+
+  default = "us-east-1"
+}
+
+variable "environment" {
+  type        = string
+  description = <<EOT
+    (Optional)  The name of the environment where the resources will be deployed.
+
+    Options:
+      - dev
+      - prod
+
+    Default: prod
+  EOT
+
+  default = "prod"
+
+  validation {
+    condition     = can(regex("dev|prod", var.environment))
+    error_message = "Err: environment name is not valid."
+  }
 }
 
 variable "common_tags" {
-  description = <<-DESC
-    A map of common tags applied to all resources for consistent tracking and cost allocation.
+  type        = map(string)
+  description = <<EOT
+    (Optional) A map of common tags applied to all resources for consistent tracking and cost allocation.
 
-    Attributes:
-      - Type: map(string)
-      - Default:
-        {
-          Environment    = "Production"
-          DeploymentType = "Automation"
-          Brand          = "Appfire"
-          AppCategory    = "DevOps"
-          AdminEmail     = "bp-team-devops@appfire.com"
-          OwningOrg      = "DevOps"
-        }
-
-    Example:
+    Default:
       {
         Environment    = "Staging"
         DeploymentType = "Manual"
@@ -38,8 +43,8 @@ variable "common_tags" {
         AdminEmail     = "team@appfire.com"
         OwningOrg      = "DevOps"
       }
-  DESC
-  type        = map(string)
+  EOT
+
   default = {
     Environment    = "Production"
     DeploymentType = "Automation"
@@ -51,16 +56,12 @@ variable "common_tags" {
 }
 
 variable "instance_type" {
-  description = <<-DESC
-    The EC2 instance type to launch.
-
-    Attributes:
-      - Type: string
-      - Default: "t3.medium"
-
-    Example:
-      "t2.micro"
-  DESC
   type        = string
-  default     = "t3.medium"
+  description = <<EOT
+    (Optional) The EC2 instance type to launch.
+
+    Default: t3.medium
+  EOT
+
+  default = "t3.medium"
 }
