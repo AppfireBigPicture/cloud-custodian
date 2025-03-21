@@ -49,10 +49,7 @@ This policy allows the role to assume roles in other accounts.
       "Sid": "VisualEditor0",
       "Effect": "Allow",
       "Action": "sts:AssumeRole",
-      "Resource": [
-        "arn:aws:iam::211125726674:role/AppfireCloudCustodian",
-        "arn:aws:iam::156041420045:role/AppfireCloudCustodian"
-      ]
+      "Resource" : "arn:aws:iam::*:role/AppfireCloudCustodian"
     }
   ]
 }

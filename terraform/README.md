@@ -60,5 +60,4 @@ flowchart LR
 
   %% Lambda uses EC2 instance id in its environment
   lambda_function -.-> ec2_instance
-
 ```

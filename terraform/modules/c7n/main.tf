@@ -1,4 +1,4 @@
-# Rol y políticas para la instancia EC2 de Cloud Custodian
+# IAM Role and policies for EC2 instance
 resource "aws_iam_role" "this" {
   name = var.instance_role_name
 
@@ -29,7 +29,7 @@ resource "aws_iam_policy" "CloudCustodianMailerAdmin" {
           "sqs:ReceiveMessage",
           "sqs:SendMessage"
         ],
-        Resource = "*"
+        Resource = aws_sqs_queue.this.arn
       }
     ]
   })
