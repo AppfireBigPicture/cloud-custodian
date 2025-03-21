@@ -73,7 +73,7 @@ resource "aws_vpc_endpoint" "ec2_messages" {
   }
 }
 
-resource "aws_iam_role" "ssm" {
+resource "aws_iam_role" "c7n" {
   name = "ec2-c7n-prod"
 
   assume_role_policy = jsonencode({
@@ -110,18 +110,18 @@ resource "aws_iam_policy" "ssm" {
 }
 
 resource "aws_iam_role_policy_attachment" "ssm_query_attach" {
-  role       = aws_iam_role.ssm.name
+  role       = aws_iam_role.c7n.name
   policy_arn = aws_iam_policy.ssm.arn
 }
 
 resource "aws_iam_role_policy_attachment" "ssm_managed_instance_attach" {
-  role       = aws_iam_role.ssm.name
+  role       = aws_iam_role.c7n.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
 resource "aws_iam_instance_profile" "this" {
   name = "ec2-ssm-query-instance-profile"
-  role = aws_iam_role.ssm.name
+  role = aws_iam_role.c7n.name
 }
 
 resource "aws_iam_role" "lambda" {
@@ -160,12 +160,12 @@ resource "aws_iam_role_policy_attachment" "lambda_ec2_attach" {
   policy_arn = aws_iam_policy.ec2.arn
 }
 
-data "aws_ssm_parameter" "this" {
+data "aws_ssm_parameter" "golden_ami" {
   name = "arn:aws:ssm:${var.aws_region}:533267137459:parameter/GoldenAMI/Ubuntu-24.04/latestID"
 }
 
 resource "aws_instance" "this" {
-  ami                  = data.aws_ssm_parameter.this.value
+  ami                  = data.aws_ssm_parameter.golden_ami.value
   instance_type        = var.instance_type
   iam_instance_profile = aws_iam_instance_profile.this.name
   subnet_id            = aws_subnet.this.id
@@ -240,4 +240,71 @@ resource "aws_lambda_permission" "this" {
   function_name = aws_lambda_function.this.function_name
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.this.arn
+}
+
+# Query the SSM Parameter Store for the SQS ARN
+data "aws_ssm_parameter" "cloudcustodian_mailer_sqs" {
+  name            = "/your/parameter/path"
+  with_decryption = false
+}
+
+# Create the IAM policy using the SSM value as the resource ARN
+resource "aws_iam_policy" "cloudcustodian_mailer_admin" {
+  name        = "CloudCustodianMailerAdmin"
+  description = "IAM policy to allow SQS messaging actions for CloudCustodian Mailer"
+  policy      = jsonencode({
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Sid": "CloudCustodianSendMessage",
+        "Effect": "Allow",
+        "Action": [
+          "sqs:DeleteMessage",
+          "sqs:ReceiveMessage",
+          "sqs:SendMessage"
+        ],
+        "Resource": data.aws_ssm_parameter.cloudcustodian_mailer_sqs.value
+      }
+    ]
+  })
+}
+
+resource "aws_iam_policy" "cloud_custodian_mailer_client" {
+  name = "CloudCustodianMailerClient"
+  description = "IAM policy to allows SQS messaging sending for CloudCustodian Mailer"
+  policy      = jsonencode({
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Sid": "CloudCustodianSendMessage",
+        "Effect": "Allow",
+        "Action": [
+          "sqs:SendMessage"
+        ],
+        "Resource": data.aws_ssm_parameter.cloudcustodian_mailer_sqs.value
+      }
+    ]
+  })
+}
+
+# Create a policy that allows assuming any role named AppfireCloudCustodian across any account
+resource "aws_iam_policy" "assume_appfire_policy" {
+  name        = "CloudCustodianMultiAccount"
+  description = "Allows assuming any role named AppfireCloudCustodian in any account of the organization"
+  policy      = jsonencode({
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": "sts:AssumeRole",
+        "Resource": "arn:aws:iam::*:role/AppfireCloudCustodian"
+      }
+    ]
+  })
+}
+
+# Attach the policy to the role
+resource "aws_iam_role_policy_attachment" "attach_policy" {
+  role       = aws_iam_role.c7n.name
+  policy_arn = aws_iam_policy.assume_appfire_policy.arn
 }
