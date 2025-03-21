@@ -7,6 +7,7 @@ module "c7n" {
 module "deployment" {
   source           = "./modules/deployment"
   aws_region       = var.aws_region
+  environment      = var.environment
   instance_type    = var.instance_type
   instance_profile = module.c7n.instance_profile_name
 }
