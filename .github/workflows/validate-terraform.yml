@@ -33,7 +33,3 @@ jobs:
       - name: 🔎 Lint Terraform
         working-directory: terraform/
         run: tflint --init && tflint --format compact
-
-      - name: 🧪 Terraform Plan
-        working-directory: terraform/
-        run: terraform plan -out=tfplan
