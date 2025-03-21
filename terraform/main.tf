@@ -311,3 +311,29 @@ resource "aws_iam_role_policy_attachment" "c7n_rol_mailer" {
   role       = aws_iam_role.c7n.name
   policy_arn = aws_iam_policy.cloudcustodian_mailer_admin.arn
 }
+
+resource "aws_sqs_queue" "appfire_queue" {
+  name = "appfire-queue"
+
+  policy = jsonencode({
+    Version   = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "AllowAppfireCloudCustodianRoles"
+        Effect    = "Allow"
+        Principal = "*"
+        Action    = [
+          "sqs:DeleteMessage",
+          "sqs:ReceiveMessage",
+          "sqs:SendMessage"
+        ]
+        Resource  = aws_sqs_queue.appfire_queue.arn
+        Condition = {
+          ArnLike = {
+            "aws:PrincipalArn" = "arn:aws:iam::*:role/AppfireCloudCustodian*"
+          }
+        }
+      }
+    ]
+  })
+}
