@@ -252,36 +252,36 @@ data "aws_ssm_parameter" "cloudcustodian_mailer_sqs" {
 resource "aws_iam_policy" "cloudcustodian_mailer_admin" {
   name        = "CloudCustodianMailerAdmin"
   description = "IAM policy to allow SQS messaging actions for CloudCustodian Mailer"
-  policy      = jsonencode({
-    "Version": "2012-10-17",
-    "Statement": [
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
       {
-        "Sid": "CloudCustodianSendMessage",
-        "Effect": "Allow",
-        "Action": [
+        "Sid" : "CloudCustodianSendMessage",
+        "Effect" : "Allow",
+        "Action" : [
           "sqs:DeleteMessage",
           "sqs:ReceiveMessage",
           "sqs:SendMessage"
         ],
-        "Resource": data.aws_ssm_parameter.cloudcustodian_mailer_sqs.value
+        "Resource" : data.aws_ssm_parameter.cloudcustodian_mailer_sqs.value
       }
     ]
   })
 }
 
 resource "aws_iam_policy" "cloud_custodian_mailer_client" {
-  name = "CloudCustodianMailerClient"
+  name        = "CloudCustodianMailerClient"
   description = "IAM policy to allows SQS messaging sending for CloudCustodian Mailer"
-  policy      = jsonencode({
-    "Version": "2012-10-17",
-    "Statement": [
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
       {
-        "Sid": "CloudCustodianSendMessage",
-        "Effect": "Allow",
-        "Action": [
+        "Sid" : "CloudCustodianSendMessage",
+        "Effect" : "Allow",
+        "Action" : [
           "sqs:SendMessage"
         ],
-        "Resource": data.aws_ssm_parameter.cloudcustodian_mailer_sqs.value
+        "Resource" : data.aws_ssm_parameter.cloudcustodian_mailer_sqs.value
       }
     ]
   })
@@ -290,24 +290,24 @@ resource "aws_iam_policy" "cloud_custodian_mailer_client" {
 resource "aws_iam_policy" "assume_appfire_policy" {
   name        = "CloudCustodianMultiAccount"
   description = "Allows assuming any role named AppfireCloudCustodian in any account of the organization"
-  policy      = jsonencode({
-    "Version": "2012-10-17",
-    "Statement": [
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
       {
-        "Effect": "Allow",
-        "Action": "sts:AssumeRole",
-        "Resource": "arn:aws:iam::*:role/AppfireCloudCustodian"
+        "Effect" : "Allow",
+        "Action" : "sts:AssumeRole",
+        "Resource" : "arn:aws:iam::*:role/AppfireCloudCustodian"
       }
     ]
   })
 }
 
-resource "aws_iam_role_policy_attachment" "attach_policy" {
+resource "aws_iam_role_policy_attachment" "c7n_rol_assume" {
   role       = aws_iam_role.c7n.name
   policy_arn = aws_iam_policy.assume_appfire_policy.arn
 }
 
-resource "aws_iam_role_policy_attachment" "attach_policy" {
+resource "aws_iam_role_policy_attachment" "c7n_rol_mailer" {
   role       = aws_iam_role.c7n.name
   policy_arn = aws_iam_policy.cloudcustodian_mailer_admin.arn
 }
