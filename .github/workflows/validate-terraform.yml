@@ -25,7 +25,7 @@ jobs:
 
       - name: 📜 Validate Terraform
         working-directory: terraform/
-        run: terraform fmt -check && terraform validate
+        run: terraform fmt -recursive && terraform validate
 
       - name: 🔎 Lint Terraform
         working-directory: terraform/
