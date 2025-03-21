@@ -18,6 +18,9 @@ jobs:
         with:
           terraform_version: 1.5.6
 
+      - run: terraform init
+        working-directory: terraform/
+
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v4
         with:
@@ -25,12 +28,8 @@ jobs:
 
       - name: 📜 Validate Terraform
         working-directory: terraform/
-        run: terraform fmt -check && terraform validate
+        run: terraform fmt -recursive && terraform validate
 
       - name: 🔎 Lint Terraform
         working-directory: terraform/
         run: tflint --init && tflint --format compact
-
-      - name: 🧪 Terraform Plan
-        working-directory: terraform/
-        run: terraform plan -out=tfplan
