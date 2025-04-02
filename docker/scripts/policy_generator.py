@@ -5,7 +5,20 @@ from typing import List, Dict, Any, Optional
 
 
 class Policy:
+    """
+    Represents a policy for an AWS resource that checks tag compliance,
+    sends notifications, and optionally marks resources for deletion.
+    """
+
     def __init__(self, resource: str, tags: List[str], delete_action: Optional[str] = None) -> None:
+        """
+        Initialize the Policy.
+
+        Args:
+           resource (str): The name of the AWS resource.
+           tags (List[str]): List of required tag keys.
+           delete_action (Optional[str]): Action to perform for deletion, if applicable.
+         """
         self.resource = resource
         self.tags = tags
         self.delete_action = delete_action
@@ -13,15 +26,40 @@ class Policy:
         self._load_sensitive_params()
 
     def _load_sensitive_params(self) -> None:
+        """
+        Load sensitive parameters such as the SQS queue ARN and Slack webhook URL from AWS SSM.
+        """
         ssm = boto3.client("ssm", region_name=os.getenv("AWS_REGION"))
         self.queue_arn = self._get_ssm_parameter(ssm, "/c7n/queue_arn")
         self.slack_webhook_url = self._get_ssm_parameter(ssm, "/c7n/slack_webhook_url")
 
     @staticmethod
     def _get_ssm_parameter(ssm_client: Any, name: str) -> str:
+        """
+        Retrieve a parameter value from AWS SSM Parameter Store.
+
+        Args:
+            ssm_client (Any): A boto3 SSM client.
+            name (str): The name of the parameter.
+
+        Returns:
+            str: The decrypted parameter value.
+        """
         return ssm_client.get_parameter(Name=name, WithDecryption=True)["Parameter"]["Value"]
 
     def _build_notify_action(self, template: str, color: str, violation_desc: str, action_desc: str) -> Dict[str, Any]:
+        """
+        Build a notification action dictionary.
+
+        Args:
+            template (str): The Slack template to use.
+            color (str): The color indicator for the Slack message.
+            violation_desc (str): Description of the violation.
+            action_desc (str): Description of the action taken.
+
+        Returns:
+            Dict[str, Any]: A dictionary representing the notification action.
+        """
         return {
             "type": "notify",
             "slack_template": template,
@@ -33,9 +71,21 @@ class Policy:
         }
 
     def _generate_tag_filters(self) -> List[Dict[str, str]]:
+        """
+        Generate a list of tag compliance filters based on the required tags.
+
+        Returns:
+            List[Dict[str, str]]: List of tag filter dictionaries.
+        """
         return [{"tag:" + tag: "absent"} for tag in self.tags]
 
     def generate(self) -> List[Dict[str, Any]]:
+        """
+        Generate a list of policy dictionaries based on tag compliance and optional delete action.
+
+        Returns:
+            List[Dict[str, Any]]: List of policies.
+        """
         tag_filters = self._generate_tag_filters()
         common_filters = [
             {self.custodian_tag: "absent"},
@@ -44,7 +94,7 @@ class Policy:
         _policies = []
 
         if self.delete_action:
-            # Mark policy with delete_action
+            # Policy for marking resources for deletion with a delete action.
             _policies.append({
                 "name": f"{self.resource}-mark",
                 "resource": self.resource,
@@ -64,7 +114,7 @@ class Policy:
                 ],
             })
 
-            # Unmark policy for compliant resources
+            # Policy for unmarking resources that have become compliant.
             unmark_filters = (
                 [{"tag:custodian_cleanup": "not-null"}] +
                 [{"tag:" + tag: "not-null"} for tag in self.tags]
@@ -88,7 +138,7 @@ class Policy:
                 ],
             })
 
-            # Delete policy for resources marked for deletion
+            # Policy for deleting resources that are marked for deletion.
             _policies.append({
                 "name": f"{self.resource}-delete",
                 "resource": self.resource,
@@ -111,7 +161,7 @@ class Policy:
                 ],
             })
         else:
-            # Mark policy without delete_action: only notify, no mark-for-op action.
+            # Policy for notifying resources without a delete action.
             _policies.append({
                 "name": f"{self.resource}-mark",
                 "resource": self.resource,
@@ -137,6 +187,16 @@ class Policy:
 
 
 def generate_policies(resources_tags_dict: Dict[str, Dict[str, List[str]]]) -> Dict[str, Any]:
+    """
+    Generate policies for each AWS resource based on provided tag configuration.
+
+    Args:
+        resources_tags_dict (Dict[str, Dict[str, List[str]]]): Dictionary mapping resource names
+            to their configuration, including required tags and optional delete actions.
+
+    Returns:
+        Dict[str, Any]: A dictionary with a single key "policies" containing a list of policy definitions.
+    """
     policies_list = []
     for resource, config in resources_tags_dict.items():
         tags = config.get("tags", [])
@@ -147,6 +207,7 @@ def generate_policies(resources_tags_dict: Dict[str, Dict[str, List[str]]]) -> D
 
 
 if __name__ == "__main__":
+    # Define resource configurations including required tags and optional delete actions.
     resources_tags = {
         # Compute
         "ec2": {"tags": ["Environment", "DeploymentType", "Brand", "AppCategory", "Exposure", "AdminEmail", "OwningOrg", "EndpointType"], "delete_action": "terminate"},
@@ -262,6 +323,7 @@ if __name__ == "__main__":
         "step-machine": {"tags": ["Environment", "DeploymentType", "Brand", "AppCategory", "AdminEmail", "OwningOrg", "DataClassification"]},
     }
 
+    # Generate policies and write them to a YAML file.
     policies = generate_policies(resources_tags)
     output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "policies.yml")
     with open(output_path, "w") as file:
