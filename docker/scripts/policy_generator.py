@@ -1,141 +1,152 @@
+import os
 import yaml
 import boto3
-import os
-from typing import List, Dict
+from typing import List, Dict, Any, Optional
+
 
 class Policy:
-    def __init__(self, resource: str, tags: list, delete_action=None):
+    def __init__(self, resource: str, tags: List[str], delete_action: Optional[str] = None) -> None:
         self.resource = resource
         self.tags = tags
         self.delete_action = delete_action
-        self.c7n_tag = "tag:custodian_cleanup"
-        self._get_params() # Get sensitive params
+        self.custodian_tag = "tag:custodian_cleanup"
+        self._load_sensitive_params()
 
-    def _get_params(self):
+    def _load_sensitive_params(self) -> None:
         ssm = boto3.client("ssm", region_name=os.getenv("AWS_REGION"))
-        self.queue_arn = ssm.get_parameter(Name="/c7n/queue_arn", WithDecryption=True)["Parameter"]["Value"]
-        self.slack_webhook_url = ssm.get_parameter(Name="/c7n/slack_webhook_url", WithDecryption=True)["Parameter"]["Value"]
+        self.queue_arn = self._get_ssm_parameter(ssm, "/c7n/queue_arn")
+        self.slack_webhook_url = self._get_ssm_parameter(ssm, "/c7n/slack_webhook_url")
 
-    def generate(self) -> list:
-        tag_compliance_filters = [{"tag:" + tag: "absent"} for tag in self.tags]
+    @staticmethod
+    def _get_ssm_parameter(ssm_client: Any, name: str) -> str:
+        return ssm_client.get_parameter(Name=name, WithDecryption=True)["Parameter"]["Value"]
 
-        if not self.delete_action:
-            return [
-                {
-                    "name": f"{self.resource}-mark",
-                    "resource": self.resource,
-                    "comment": "Find all resources that are not conformant to tagging policies, and tag them for deletion in 4 days.",
-                    "filters": [
-                        {self.c7n_tag: "absent"},
-                        {"or": tag_compliance_filters}
-                    ],
-                    "actions": [
-                        {
-                            "type": "notify",
-                            "slack_template": "slack",
-                            "slack_msg_color": "warning",
-                            "to": [self.slack_webhook_url],
-                            "violation_desc": "Tags missing in the following resources. These resources will be deleted if they are not conformant to tagging policies.",
-                            "action_desc": "Tags resources accordingly. Ask DevOps team for help.",
-                            "transport": {
-                                "type": "sqs",
-                                "queue": self.queue_arn
-                            }
-                        }
-                    ]
-                }
-            ]
+    def _build_notify_action(self, template: str, color: str, violation_desc: str, action_desc: str) -> Dict[str, Any]:
+        return {
+            "type": "notify",
+            "slack_template": template,
+            "slack_msg_color": color,
+            "to": [self.slack_webhook_url],
+            "violation_desc": violation_desc,
+            "action_desc": action_desc,
+            "transport": {"type": "sqs", "queue": self.queue_arn},
+        }
 
-        return [
-            {
+    def _generate_tag_filters(self) -> List[Dict[str, str]]:
+        return [{"tag:" + tag: "absent"} for tag in self.tags]
+
+    def generate(self) -> List[Dict[str, Any]]:
+        tag_filters = self._generate_tag_filters()
+        common_filters = [
+            {self.custodian_tag: "absent"},
+            {"or": tag_filters},
+        ]
+        _policies = []
+
+        if self.delete_action:
+            # Mark policy with delete_action
+            _policies.append({
                 "name": f"{self.resource}-mark",
                 "resource": self.resource,
-                "comment": "Find all resources that are not conformant to tagging policies, and tag them for deletion in 4 days.",
-                "filters": [
-                    {self.c7n_tag: "absent"},
-                    {"or": tag_compliance_filters}
-                ],
+                "comment": (
+                    "Find all resources that are not conformant to tagging policies, "
+                    "and tag them for deletion in 4 days."
+                ),
+                "filters": common_filters,
                 "actions": [
-                    {"type": "mark-for-op", "tag": self.c7n_tag, "op": self.delete_action, "days": 4},
-                    {
-                        "type": "notify",
-                        "slack_template": "slack",
-                        "slack_msg_color": "warning",
-                        "to": [self.slack_webhook_url],
-                        "violation_desc": "Tags missing in the following resources.",
-                        "action_desc": "Tags resources accordingly. Ask DevOps team for help.",
-                        "transport": {
-                            "type": "sqs",
-                            "queue": self.queue_arn
-                        }
-                    }
-                ]
-            },
-            {
+                    {"type": "mark-for-op", "tag": self.custodian_tag, "op": self.delete_action, "days": 4},
+                    self._build_notify_action(
+                        template="slack",
+                        color="warning",
+                        violation_desc="Tags missing in the following resources.",
+                        action_desc="Tags resources accordingly. Ask DevOps team for help."
+                    ),
+                ],
+            })
+
+            # Unmark policy for compliant resources
+            unmark_filters = (
+                [{"tag:custodian_cleanup": "not-null"}] +
+                [{"tag:" + tag: "not-null"} for tag in self.tags]
+            )
+            _policies.append({
                 "name": f"{self.resource}-unmark",
                 "resource": self.resource,
-                "comment": "Any resource which have previously been marked as non compliant with tag policies, that are now compliant should be unmarked as non-compliant.",
-                "filters": (
-                    [{"tag:custodian_cleanup": "not-null"}] +
-                    [{"tag:" + tag: "not-null"} for tag in self.tags]
+                "comment": (
+                    "Any resource which has previously been marked as non compliant with tag policies, "
+                    "that is now compliant should be unmarked."
                 ),
+                "filters": unmark_filters,
                 "actions": [
                     {"type": "remove-tag", "tags": ["custodian_cleanup"]},
-                    {
-                        "type": "notify",
-                        "slack_template": "slack",
-                        "slack_msg_color": "good",
-                        "to": [self.slack_webhook_url],
-                        "violation_desc": "Your resource is now compliant.",
-                        "action_desc": "You can breathe easy now.",
-                        "transport": {
-                            "type": "sqs",
-                            "queue": self.queue_arn
-                        }
-                    }
-                ]
-            },
-            {
+                    self._build_notify_action(
+                        template="slack",
+                        color="good",
+                        violation_desc="Your resource is now compliant.",
+                        action_desc="You can breathe easy now."
+                    ),
+                ],
+            })
+
+            # Delete policy for resources marked for deletion
+            _policies.append({
                 "name": f"{self.resource}-delete",
                 "resource": self.resource,
-                "comment": "Delete all resources previously marked for deletion by today's date. Also verify that they continue to not meet tagging policies.",
+                "comment": (
+                    "Delete all resources previously marked for deletion by today's date. "
+                    "Also verify that they continue to not meet tagging policies."
+                ),
                 "filters": [
                     {"type": "marked-for-op", "tag": "custodian_cleanup", "op": self.delete_action},
-                    {"or": tag_compliance_filters}
+                    {"or": tag_filters},
                 ],
                 "actions": [
                     {"type": self.delete_action},
-                    {
-                        "type": "notify",
-                        "slack_template": "slack",
-                        "slack_msg_color": "danger",
-                        "to": [self.slack_webhook_url],
-                        "violation_desc": "Tags missing in the resources for 4 days.",
-                        "action_desc": "The resources have been deleted.",
-                        "transport": {
-                            "type": "sqs",
-                            "queue": self.queue_arn
-                        }
-                    }
-                ]
-            }
-        ]
+                    self._build_notify_action(
+                        template="slack",
+                        color="danger",
+                        violation_desc="Tags missing in the resources for 4 days.",
+                        action_desc="The resources have been deleted."
+                    ),
+                ],
+            })
+        else:
+            # Mark policy without delete_action: only notify, no mark-for-op action.
+            _policies.append({
+                "name": f"{self.resource}-mark",
+                "resource": self.resource,
+                "comment": (
+                    "Find all resources that are not conformant to tagging policies, "
+                    "and tag them for deletion in 4 days."
+                ),
+                "filters": common_filters,
+                "actions": [
+                    self._build_notify_action(
+                        template="slack",
+                        color="warning",
+                        violation_desc=(
+                            "Tags missing in the following resources. "
+                            "These resources will be deleted if they are not conformant to tagging policies."
+                        ),
+                        action_desc="Tags resources accordingly. Ask DevOps team for help."
+                    )
+                ],
+            })
+
+        return _policies
 
 
-def generate_policies(resources_tags_dict: Dict[str, Dict[str, List[str]]]) -> Dict:
+def generate_policies(resources_tags_dict: Dict[str, Dict[str, List[str]]]) -> Dict[str, Any]:
     policies_list = []
-
     for resource, config in resources_tags_dict.items():
         tags = config.get("tags", [])
-        delete_action = config.get("delete_action", None)
+        delete_action = config.get("delete_action")
         policy = Policy(resource=resource, tags=tags, delete_action=delete_action)
         policies_list.extend(policy.generate())
-
     return {"policies": policies_list}
 
+
 if __name__ == "__main__":
-    # For resources and possible actions: https://cloudcustodian.io/docs/aws/resources
-    # If not suitable action, don't add the `delete_action` key.
     resources_tags = {
         # Compute
         "ec2": {"tags": ["Environment", "DeploymentType", "Brand", "AppCategory", "Exposure", "AdminEmail", "OwningOrg", "EndpointType"], "delete_action": "terminate"},
@@ -252,5 +263,6 @@ if __name__ == "__main__":
     }
 
     policies = generate_policies(resources_tags)
-    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "policies.yml"), "w") as f:
-        yaml.dump(policies, f, sort_keys=False, default_flow_style=False)
+    output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "policies.yml")
+    with open(output_path, "w") as file:
+        yaml.dump(policies, file, sort_keys=False, default_flow_style=False)
