@@ -27,5 +27,5 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["/bin/bash", "/app/scripts/c7n-pipeline.sh"]
+ENTRYPOINT ["/app/entrypoint.sh", "--verbose"]
+CMD ["/bin/bash", "/app/scripts/c7n-pipeline.sh", "--verbose"]
