@@ -49,6 +49,10 @@ Before using Tagging Control, ensure you have the following prerequisites:
 
   Familiarity with Cloud Custodian is recommended for understanding and managing resource compliance. [Learn more about Cloud Custodian](https://cloudcustodian.io/docs/index.html).
 
+- **Read the full documentation**
+
+  It is essential to read the full documentation in the [Additional Documentation](#additional-documentation) before deploying Tagging Control to ensure proper setup and usage.
+
 ## Instructions for using Tagging Control
 
 Get started with Tagging Control by cloning the repository:
