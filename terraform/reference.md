@@ -26,13 +26,16 @@ cloud-custodian-infra/
 ## IAM Permissions
 
 ### All Roles
+
+This role must exist in every AWS account that Cloud Custodian will analyze.
+
 - **Policies**
   - `ReadOnlyAccess`
   - `ResourceGroupsandTagEditorFullAccess`
   - `ResourceGroupsTaggingAPITagUntagSupportedResources`
   - `CloudCustodianMailerClient` (self-managed)
 - **Trust**
-  - Principal: `arn:aws:iam::ACCOUNT_ID:role/CloudCustodian`
+  - Principal: `arn:aws:iam::ACCOUNT_ID:role/AppfireCloudCustodian`
 
 ### CloudCustodian Role
 - **Policies**

@@ -45,8 +45,8 @@ Provides Docker configuration, dependencies, and scripts for running Cloud Custo
 - Generates c7n policy files
 - Consumes ENV vars set by `entrypoint.sh`
 
-#### `scripts/{c7n-org, c7n-mailer}-launcher.sh`
-- Launches c7n-org or c7n-mailer pipelines
+#### `scripts/c7n-pipeline.sh`
+- Launches c7n-org and c7n-mailer.
 
 ### GitHub Actions Workflow
 
