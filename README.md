@@ -46,7 +46,7 @@ Before using Tagging Control, ensure you have the following prerequisites:
   CloudCustodianMultiAccount (self-managed)
   CloudCustodianMailerAdmin (self-managed)  
   ```  
-  See full permissions in [terraform/reference.md](./terraform/reference.md).
+  See full permissions in [terraform/reference.md](./terraform/README.md).
 
 - **AWS SSM Parameter Store**  
   Stores sensitive values (Slack webhook URL, Docker pull credentials, AWS keys). The container’s `entrypoint.sh` fetches these at runtime.  
@@ -119,7 +119,7 @@ Ensure all required environment variables are correctly set.
 
 For more information:
 
-* [Infrastructure as Code reference.](./terraform/reference.md)
+* [Infrastructure as Code reference.](./terraform/README.md)
 * [Architecture Overview (Discussion).](./terraform/architecture-overview-discussion.md)
 * [Docker setup reference](./docker/README.md)
 
