@@ -111,8 +111,8 @@ Ensure all required environment variables are correctly set.
 
 For more information:
 
-* [Infrastructure as Code overview diagram](./terraform/iac-overview.md)
 * [Infrastructure as Code reference.](./terraform/reference.md)
+* [Architecture Overview (Discussion).](./terraform/architecture-overview-discussion.md)
 * [Docker setup reference](./docker/README.md)
 
 ## How to get help

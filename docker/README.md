@@ -1,36 +1,80 @@
-# Cloud Custodian Docker Setup
+## Cloud Custodian Docker Setup
 
-This folder provides all the necessary Docker configurations, dependencies, and scripts to run Cloud Custodian (c7n) in a containerized environment.
+### Overview
+Provides Docker configuration, dependencies, and scripts for running Cloud Custodian (c7n) in a container.
 
-## Folder Structure
+### Directory Layout
 
-- **config/**
-  - Contains configuration files for Cloud Custodian.
-- **scripts/**
-  - Contains scripts to handle tasks such as creating policies and launching the pipeline for **c7n-org** and **c7n-mailer**.
-- `Dockerfile`: Main Dockerfile containing non-sensitive environment variables.
-- `Dockerfile-local`: Used for deployments from machines with Netskope installed. This file leverages the `netskope-cert-bundle.pem` certificate.
-
-## Environment Variables
-
-- **Non-sensitive variables**: Defined directly in the Dockerfile.
-- **Sensitive variables**: Such as the Slack webhook, are stored in the SSM Parameter Store (via the CloudCustodian app) and are retrieved by `entrypoint.sh` and `scripts/policy_generator.py`.
-
-## GitHub Actions
-
-A GitHub Action is set up to:
-- Validate the Dockerfile using Hadolint.
-- Build the Docker image.
-- *(Future enhancement: Push the built image to a repository.)*
-
-## Execution Flow
-
-1. The execution starts with `entrypoint.sh`, which downloads sensitive environment variables from the SSM Parameter Store and prepares the environment for Cloud Custodian execution.
-2. After the `entrypoint.sh` script runs, the default command executed is `c7n-pipeline.sh`. However, this can be overridden when running the Docker image.
-
-Example to override the default command:
-```bash
-docker run your-docker-image /path/to/custom-script.sh
+```
+.
+├── config/                  # Cloud Custodian configuration files
+├── scripts/                 # Automation scripts for c7n-org, c7n-mailer, policy generation
+├── Dockerfile               # Base image, non-sensitive ENV vars
+└── Dockerfile-local         # For Netskope-enabled hosts; uses netskope-cert-bundle.pem
 ```
 
-This allows you to run custom scripts or modify the execution pipeline as needed.
+### Dockerfiles
+
+#### `Dockerfile`
+
+- **FROM**: Base image
+- **ENV**: Non-sensitive variables (hard-coded)
+- **COPY**: `config/`, `scripts/`, `entrypoint.sh`
+- **ENTRYPOINT**: `["/entrypoint.sh"]`
+- **CMD**: `["c7n-pipeline.sh"]`
+
+#### `Dockerfile-local`
+- Extends `Dockerfile`
+- **ADD**: `netskope-cert-bundle.pem`
+- Configures certificate bundle for Netskope environments
+
+### Environment Variables
+
+| Type               | Definition                          | Retrieval                         |
+|--------------------|-------------------------------------|-----------------------------------|
+| **Non-sensitive**  | Declared via `ENV` in Dockerfiles   | Available at build time           |
+| **Sensitive**      | Slack webhook, AWS keys, etc.       | Fetched from AWS SSM by entrypoint |
+
+### Scripts
+
+#### `entrypoint.sh`
+- Retrieves sensitive variables from SSM
+- Exports them into shell environment
+
+#### `scripts/policy_generator.py`
+- Generates c7n policy files
+- Consumes ENV vars set by `entrypoint.sh`
+
+#### `scripts/{c7n-org, c7n-mailer}-launcher.sh`
+- Launches c7n-org or c7n-mailer pipelines
+
+### GitHub Actions Workflow
+
+```yaml
+name: Docker CI
+
+on: [push]
+
+jobs:
+  validate:
+    uses: hadolint/hadolint-action@v2
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Docker image
+        run: docker build -t c7n-image .
+      # future: push to registry
+```
+
+- **Hadolint**: Lints Dockerfiles
+- **Docker Build**: Builds image
+
+### Container Invocation
+
+- **Default**: runs `entrypoint.sh` → `c7n-pipeline.sh`
+- **Override CMD**:
+  ```bash
+  docker run c7n-image /path/to/custom-script.sh
+  ```  
