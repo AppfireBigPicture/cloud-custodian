@@ -21,37 +21,45 @@ This project is intended for cloud administrators, DevOps engineers, and IT mana
 
 Before using Tagging Control, ensure you have the following prerequisites:
 
-- **Docker**
+- **Familiarity with Cloud Custodian**  
+  You should understand Cloud Custodian policies, filters, and actions to author or customize your own tagging rules.  
+  – Docs: https://cloudcustodian.io/docs/index.html
 
-  Required to containerize and run the application. [Install Docker](https://www.docker.com/).
+- **Docker**  
+  Used to build and run the `c7n-image` container that executes policies (`c7n-pipeline.sh`), mailer, and org-wide scans.  
+  – Install Docker: https://docs.docker.com/get-docker/  
 
-- **Terraform 1.5.7 or higher**
+- **Terraform (v1.0+)**  
+  Manages the AWS infrastructure: EventBridge rules, Lambda, EC2 instances, IAM roles, SQS queues, and SSM parameters.  
+  – Install: https://learn.hashicorp.com/tutorials/terraform/install-cli  
+  – AWS provider docs: https://registry.terraform.io/providers/hashicorp/aws/latest/docs
 
-  Required to manage infrastructure as code. [Install Terraform](https://developer.hashicorp.com/terraform/install).
+- **AWS CLI & AWS IAM Permissions**  
+  Required to bootstrap SSM Parameter Store entries, deploy Terraform, and manage IAM roles/policies.  
+  – Install AWS CLI: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html  
+  – You’ll need at minimum:
+  ```
+  ReadOnlyAccess
+  ResourceGroupsandTagEditorFullAccess
+  ResourceGroupsTaggingAPITagUntagSupportedResources
+  CloudCustodianMailerClient (self-managed)
+  CloudCustodianMultiAccount (self-managed)
+  CloudCustodianMailerAdmin (self-managed)  
+  ```  
+  See full permissions in [terraform/reference.md](./terraform/reference.md).
 
-- **Access to your cloud provider**
+- **AWS SSM Parameter Store**  
+  Stores sensitive values (Slack webhook URL, Docker pull credentials, AWS keys). The container’s `entrypoint.sh` fetches these at runtime.  
+  – Guide: https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html
 
-  Ensure you have permissions to create, delete and read resources to monitor.
+- **Slack Webhook**  
+  For compliance notifications. Create an incoming-webhook in your Slack workspace, then store its URL in SSM Parameter Store.  
+  – Setup: https://api.slack.com/messaging/webhooks
 
-- **Predefined tagging policies**
-
-  A set of rules or standars for tags that the project will validate against.
-
-- **Sensitive environment variables stored in SSM Parameter Store**
-
-  Sensitive variables (e.g., Slack channel URL) must be stored securely in AWS SSM Parameter Store. Refer to `docker/entrypoint.sh` and `scripts/policy_generator.py` for the list of required variables.
-
-- **Environment variables stored in Dockerfiles**
-
-  Environment variables (e.g., AWS region, account ID) must be defined in the Dockerfile. Refer to `docker/Dockerfile` and `docker/Dockerfile-local` for the list of required variables.
-
-- **Basic knowledge of Cloud Custodian**
-
-  Familiarity with Cloud Custodian is recommended for understanding and managing resource compliance. [Learn more about Cloud Custodian](https://cloudcustodian.io/docs/index.html).
-
-- **Read the full documentation**
-
-  It is essential to read the full documentation in the [Additional Documentation](#additional-documentation) before deploying Tagging Control to ensure proper setup and usage.
+- **Account & Policies Files**
+  - **Accounts file** (static or dynamically generated) listing AWS account IDs for multi-account runs.
+  - **Policies manifest** describing which Cloud Custodian policies to apply.  
+    You may choose to integrate a generator tool to produce per-resource or per-tag schemas at runtime.
 
 ## Instructions for using Tagging Control
 
